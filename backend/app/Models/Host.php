@@ -43,4 +43,9 @@ class Host extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    public function accessRequests()
+    {
+        return $this->hasMany(AccessRequest::class);
+    }
 }

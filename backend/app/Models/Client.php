@@ -21,4 +21,14 @@ class Client extends Model
     {
         return $this->attributes['hosts_count'] ?? 0;
     }
+
+    public function hosts()
+    {
+        return $this->hasMany(Host::class);
+    }
+
+    public function accessRequests()
+    {
+        return $this->hasMany(AccessRequest::class);
+    }
 }

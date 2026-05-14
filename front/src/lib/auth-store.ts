@@ -72,8 +72,8 @@ export const authStore = {
           id: data.user.id.toString(),
           name: data.user.name,
           email: data.user.email,
-          level: 3, // Nível 3 (Admin) provisório
-          active: true,
+          level: data.user.level,
+          active: data.user.active !== undefined ? data.user.active : true,
           password: ''
         };
         currentUser = user;

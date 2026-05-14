@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useAccessRequests } from '@/hooks/use-auth';
@@ -19,15 +20,42 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, canManageUsers, logout } = useAuth();
-  const { pendingCount } = useAccessRequests();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [realPendingCount, setRealPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (user && user.level >= 2) {
+      const fetchCount = async () => {
+        try {
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/access-requests`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              setRealPendingCount(data.filter(r => r.status === 'pending').length);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchCount();
+      const interval = setInterval(fetchCount, 30000); // refresh every 30s
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   if (!user) return null;
 
   const navItems = [
     { to: '/' as const, label: 'Clientes', icon: Building2, badge: 0 },
-    { to: '/notifications' as const, label: 'Notificações', icon: Bell, badge: user.level >= 2 ? pendingCount : 0 },
+    { to: '/requests' as const, label: 'Solicitações', icon: Shield, badge: user.level >= 2 ? realPendingCount : 0 },
     ...(canManageUsers ? [{ to: '/users' as const, label: 'Usuários', icon: Users, badge: 0 }] : []),
     { to: '/profile' as const, label: 'Perfil', icon: UserCircle, badge: 0 },
   ];

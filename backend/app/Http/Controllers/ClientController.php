@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Client::all());
+        $clients = Client::all()->map(function ($client) use ($request) {
+            return $this->attachAccessFlag($client, $request->user());
+        });
+        return response()->json($clients);
     }
 
     public function store(Request $request)
@@ -27,10 +30,28 @@ class ClientController extends Controller
         return response()->json($client, 201);
     }
     
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $client = Client::findOrFail($id);
+        $client = $this->attachAccessFlag($client, $request->user());
         return response()->json($client);
+    }
+
+    private function attachAccessFlag($client, $user)
+    {
+        if ($user->level >= 2) {
+            $client->has_access = true;
+            return $client;
+        }
+
+        $hasAccess = \App\Models\AccessRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->where('expires_at', '>', now())
+            ->where('client_id', $client->id)
+            ->exists();
+
+        $client->has_access = $hasAccess;
+        return $client;
     }
 
     public function update(Request $request, $id)

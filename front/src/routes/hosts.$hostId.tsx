@@ -19,7 +19,7 @@ export const Route = createFileRoute('/hosts/$hostId')({
 function HostDetailPage() {
   const { hostId } = Route.useParams();
   const { user, canEdit, isN1 } = useAuth();
-  const { addRequest, getApprovedAccess } = useAccessRequests();
+  const { addRequest } = useAccessRequests();
   const navigate = useNavigate();
 
   const [host, setHost] = useState<Host | null>(null);
@@ -190,27 +190,15 @@ function HostDetailPage() {
     }
   };
 
-  const approvedAccess = host && user && isN1 ? getApprovedAccess(host.id, user.id) : null;
-
   useEffect(() => {
-    if (!approvedAccess) {
+    if (!host?.has_access || canEdit) {
       setCountdown('');
       return;
     }
-    const tick = () => {
-      const remaining = approvedAccess.expiresAt - Date.now();
-      if (remaining <= 0) {
-        setCountdown('Expirado');
-        return;
-      }
-      const min = Math.floor(remaining / 60000);
-      const sec = Math.floor((remaining % 60000) / 1000);
-      setCountdown(`${min}m ${sec.toString().padStart(2, '0')}s`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [approvedAccess]);
+    // We don't have an exact expiry timestamp from the host API endpoint yet, 
+    // but the backend handles expiration. If they have access, it's valid.
+    // For a real countdown, the backend should return `expires_at` along with `has_access`.
+  }, [host, canEdit]);
 
   if (!user) {
     navigate({ to: '/login' });
@@ -233,7 +221,7 @@ function HostDetailPage() {
     );
   }
 
-  const canSeePassword = canEdit || !!approvedAccess;
+  const canSeePassword = canEdit || host.has_access;
   const addressLabel = getHostAddressLabel(host.type);
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -253,21 +241,34 @@ function HostDetailPage() {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const handleRequestAccess = () => {
-    if (!justification.trim()) return;
-    addRequest({
-      id: `r${Date.now()}`,
-      requesterId: user.id,
-      requesterName: user.name,
-      hostId: host.id,
-      hostName: host.name,
-      clientName: client.name,
-      justification: justification.trim(),
-      status: 'pending',
-      createdAt: Date.now(),
-    });
-    setRequestSent(true);
-    setJustification('');
+  const handleRequestAccess = async () => {
+    if (!justification.trim() || !host) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/access-requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          host_id: host.id,
+          client_id: host.clientId,
+          reason: justification.trim(),
+        })
+      });
+      if (response.ok) {
+        setRequestSent(true);
+        setJustification('');
+        setRequestSheet(false);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Erro ao solicitar acesso.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -292,31 +293,49 @@ function HostDetailPage() {
               </div>
             </div>
           </div>
-          {canEdit && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setEditHostForm({ name: host.name, type: host.type, ip: host.ip || '', username: host.username || '', password: '' }); setEditHostModal(true); }}
-                className="p-2 text-muted-foreground hover:text-primary transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+          <div className="flex items-center gap-2">
+            {!canSeePassword && !requestSent && (
+              <Button
+                onClick={() => setRequestSheet(true)}
+                size="sm"
+                className="h-9 font-semibold glow-primary-sm"
               >
-                <Edit2 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleDeleteHost}
-                className="p-2 text-muted-foreground hover:text-destructive transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+                <Lock className="w-4 h-4 mr-2" />
+                Solicitar acesso
+              </Button>
+            )}
+            {!canSeePassword && requestSent && (
+              <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full">
+                Solicitação enviada
+              </span>
+            )}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => { setEditHostForm({ name: host.name, type: host.type, ip: host.ip || '', username: host.username || '', password: '' }); setEditHostModal(true); }}
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                {user.level === 3 && (
+                  <button
+                    onClick={handleDeleteHost}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Countdown for N1 */}
-        {approvedAccess && countdown && countdown !== 'Expirado' && (
+        {host.has_access && !canEdit && (
           <div className="bg-success/10 border border-success/30 rounded-xl p-3 flex items-center gap-3">
             <Clock className="w-5 h-5 text-success" />
             <div>
               <p className="text-sm font-medium text-success">Acesso temporário ativo</p>
-              <p className="text-xs text-success/80">Expira em {countdown}</p>
             </div>
           </div>
         )}
@@ -373,19 +392,6 @@ function HostDetailPage() {
               ) : (
                 <div className="mt-2 space-y-3">
                   <p className="text-muted-foreground font-mono text-sm">••••••••••••</p>
-                  {requestSent ? (
-                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
-                      <p className="text-sm text-primary font-medium">Solicitação enviada. Aguarde aprovação.</p>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => setRequestSheet(true)}
-                      className="w-full h-12 text-base font-semibold glow-primary-sm"
-                    >
-                      <Lock className="w-5 h-5 mr-2" />
-                      Solicitar acesso
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
@@ -527,16 +533,12 @@ function HostDetailPage() {
         </div>
       </div>
 
-      {/* Bottom sheet for requesting access */}
-      {requestSheet && (
-        <div className="fixed inset-0 z-50" onClick={() => setRequestSheet(false)}>
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-          <div
-            className="absolute bottom-0 inset-x-0 bg-card border-t border-border rounded-t-2xl p-6 space-y-4 slide-up bottom-nav-safe"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 rounded-full bg-border mx-auto" />
-            <h3 className="text-lg font-bold text-foreground">Solicitar acesso</h3>
+      <Dialog open={requestSheet} onOpenChange={setRequestSheet}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar acesso</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
               Informe a justificativa para acessar a senha de <span className="text-foreground font-medium">{host.name}</span>
             </p>
@@ -546,16 +548,16 @@ function HostDetailPage() {
               placeholder="Descreva o motivo da solicitação..."
               className="w-full h-24 bg-input/50 border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
             />
-            <Button
-              onClick={handleRequestAccess}
-              disabled={!justification.trim()}
-              className="w-full h-12 text-base font-semibold"
-            >
-              Enviar solicitação
-            </Button>
           </div>
-        </div>
-      )}
+          <Button
+            onClick={handleRequestAccess}
+            disabled={!justification.trim()}
+            className="w-full h-11 text-base font-semibold"
+          >
+            Enviar solicitação
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editHostModal} onOpenChange={setEditHostModal}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">

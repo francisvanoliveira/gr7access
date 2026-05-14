@@ -208,12 +208,14 @@ function ClientHostsPage() {
               >
                 <Edit2 className="w-5 h-5" />
               </button>
-              <button
-                onClick={handleDeleteClient}
-                className="p-2 text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              {user.level === 3 && (
+                <button
+                  onClick={handleDeleteClient}
+                  className="p-2 text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
           )}
         </div>

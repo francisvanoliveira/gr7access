@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
@@ -20,6 +21,11 @@ import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/hosts/$hostId': typeof HostsHostIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/hosts/$hostId': typeof HostsHostIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/hosts/$hostId': typeof HostsHostIdRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/profile'
+    | '/requests'
     | '/users'
     | '/clients/$clientId'
     | '/hosts/$hostId'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/profile'
+    | '/requests'
     | '/users'
     | '/clients/$clientId'
     | '/hosts/$hostId'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/profile'
+    | '/requests'
     | '/users'
     | '/clients/$clientId'
     | '/hosts/$hostId'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
+  RequestsRoute: typeof RequestsRoute
   UsersRoute: typeof UsersRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   HostsHostIdRoute: typeof HostsHostIdRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
+  RequestsRoute: RequestsRoute,
   UsersRoute: UsersRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   HostsHostIdRoute: HostsHostIdRoute,

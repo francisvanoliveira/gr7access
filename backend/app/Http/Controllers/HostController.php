@@ -16,7 +16,11 @@ class HostController extends Controller
             $query->where('client_id', $request->client_id);
         }
 
-        return response()->json($query->get());
+        $hosts = $query->get()->map(function ($host) use ($request) {
+            return $this->maskHostData($host, $request->user());
+        });
+
+        return response()->json($hosts);
     }
 
     public function store(Request $request)
@@ -56,10 +60,39 @@ class HostController extends Controller
         return response()->json($host, 201);
     }
     
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $host = Host::with('client')->findOrFail($id);
+        $host = $this->maskHostData($host, $request->user());
         return response()->json($host);
+    }
+
+    private function maskHostData($host, $user)
+    {
+        if ($user->level >= 2) {
+            $host->has_access = true;
+            return $host;
+        }
+
+        // Check if level 1 user has an approved request for this host or its client
+        $hasAccess = \App\Models\AccessRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->where('expires_at', '>', now())
+            ->where(function($q) use ($host) {
+                $q->where('host_id', $host->id)
+                  ->orWhere('client_id', $host->client_id);
+            })->exists();
+
+        $host->has_access = $hasAccess;
+
+        if (!$hasAccess) {
+            $host->password = null;
+            $host->username = '***';
+            $host->ip = '***';
+            $host->notes_list = [];
+        }
+
+        return $host;
     }
 
     public function update(Request $request, $id)
