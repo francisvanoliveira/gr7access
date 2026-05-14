@@ -24,6 +24,7 @@ class ClientController extends Controller
 
         $client = Client::create([
             'name' => $request->name,
+            'slug' => \Illuminate\Support\Str::slug($request->name) . '-' . uniqid(),
             'description' => $request->description,
         ]);
 
@@ -32,7 +33,7 @@ class ClientController extends Controller
     
     public function show(Request $request, $id)
     {
-        $client = Client::findOrFail($id);
+        $client = Client::where('id', $id)->orWhere('slug', $id)->firstOrFail();
         $client = $this->attachAccessFlag($client, $request->user());
         return response()->json($client);
     }
@@ -64,6 +65,7 @@ class ClientController extends Controller
         ]);
 
         $client->name = $request->name;
+        $client->slug = \Illuminate\Support\Str::slug($request->name) . '-' . $client->id;
         $client->description = $request->description;
         $client->save();
 

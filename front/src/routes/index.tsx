@@ -104,7 +104,7 @@ function ClientsPage() {
             <Link
               key={client.id}
               to="/clients/$clientId"
-              params={{ clientId: client.id }}
+              params={{ clientId: client.slug || client.id }}
               className="block"
             >
               <div

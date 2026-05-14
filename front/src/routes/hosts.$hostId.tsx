@@ -183,7 +183,7 @@ function HostDetailPage() {
         }
       });
       if (response.ok) {
-        navigate({ to: '/clients/$clientId', params: { clientId: host.clientId } });
+        navigate({ to: '/clients/$clientId', params: { clientId: client?.slug || host.clientId } });
       }
     } catch (e) {
       console.error(e);
@@ -191,14 +191,44 @@ function HostDetailPage() {
   };
 
   useEffect(() => {
-    if (!host?.has_access || canEdit) {
+    if (!host?.has_access || canEdit || !host.access_expires_at) {
       setCountdown('');
       return;
     }
-    // We don't have an exact expiry timestamp from the host API endpoint yet, 
-    // but the backend handles expiration. If they have access, it's valid.
-    // For a real countdown, the backend should return `expires_at` along with `has_access`.
-  }, [host, canEdit]);
+
+    // Force an immediate calculation so it doesn't wait 1s to show
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      // Ensure backend timestamp is parsed correctly (Laravel returns UTC by default)
+      // Usually like "2026-05-14T03:00:00.000000Z"
+      let expiresAtStr = host.access_expires_at!;
+      if (!expiresAtStr.endsWith('Z')) expiresAtStr += 'Z';
+      const expiresAt = new Date(expiresAtStr).getTime();
+      const distance = expiresAt - now;
+
+      if (distance <= 0) {
+        setCountdown('');
+        // Auto block access
+        setHost(prev => prev ? { ...prev, has_access: false, password: '', username: '***', ip: '***', notesList: [] } : null);
+        return false; // Stop interval
+      } else {
+        const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((distance % (1000 * 60)) / 1000);
+        setCountdown(`${h > 0 ? h + 'h ' : ''}${m}m ${s}s`);
+        return true; // Keep interval
+      }
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(() => {
+      if (!calculateTimeLeft()) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [host?.has_access, host?.access_expires_at, canEdit]);
 
   if (!user) {
     navigate({ to: '/login' });
@@ -278,7 +308,7 @@ function HostDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate({ to: '/clients/$clientId', params: { clientId: host.clientId } })}
+              onClick={() => navigate({ to: '/clients/$clientId', params: { clientId: client?.slug || host.clientId } })}
               className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -336,6 +366,7 @@ function HostDetailPage() {
             <Clock className="w-5 h-5 text-success" />
             <div>
               <p className="text-sm font-medium text-success">Acesso temporário ativo</p>
+              {countdown && <p className="text-xs text-success/80 mt-0.5">Tempo restante: {countdown}</p>}
             </div>
           </div>
         )}

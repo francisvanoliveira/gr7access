@@ -12,6 +12,7 @@ export interface User {
 export interface Client {
   id: string;
   name: string;
+  slug?: string;
   description: string;
   hostsCount: number;
 }
@@ -38,6 +39,8 @@ export interface Host {
   password: string;
   notes: string;
   notesList?: HostNote[];
+  has_access?: boolean;
+  access_expires_at?: string;
 }
 
 export interface AccessRequest {

@@ -75,17 +75,20 @@ class HostController extends Controller
         }
 
         // Check if level 1 user has an approved request for this host or its client
-        $hasAccess = \App\Models\AccessRequest::where('user_id', $user->id)
+        $accessRequest = \App\Models\AccessRequest::where('user_id', $user->id)
             ->where('status', 'approved')
             ->where('expires_at', '>', now())
             ->where(function($q) use ($host) {
                 $q->where('host_id', $host->id)
                   ->orWhere('client_id', $host->client_id);
-            })->exists();
+            })->orderBy('expires_at', 'desc')->first();
 
+        $hasAccess = $accessRequest ? true : false;
         $host->has_access = $hasAccess;
 
-        if (!$hasAccess) {
+        if ($hasAccess) {
+            $host->access_expires_at = $accessRequest->expires_at;
+        } else {
             $host->password = null;
             $host->username = '***';
             $host->ip = '***';

@@ -36,8 +36,13 @@ function ClientHostsPage() {
 
   useEffect(() => {
     fetchClient();
-    fetchHosts();
   }, [clientId]);
+
+  useEffect(() => {
+    if (client?.id) {
+      fetchHosts(client.id);
+    }
+  }, [client?.id]);
 
   const fetchClient = async () => {
     try {
@@ -59,10 +64,10 @@ function ClientHostsPage() {
     }
   };
 
-  const fetchHosts = async () => {
+  const fetchHosts = async (realClientId: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/hosts?client_id=${clientId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/hosts?client_id=${realClientId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -101,10 +106,10 @@ function ClientHostsPage() {
   }
 
   const handleUpdateClient = async () => {
-    if (!editClientForm.name.trim()) return;
+    if (!editClientForm.name.trim() || !client) return;
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/clients/${clientId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/clients/${client.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -123,10 +128,10 @@ function ClientHostsPage() {
   };
 
   const handleDeleteClient = async () => {
-    if (!confirm('Tem certeza que deseja excluir este cliente? Todos os hosts vinculados também serão excluídos.')) return;
+    if (!client || !confirm('Tem certeza que deseja excluir este cliente? Todos os hosts vinculados também serão excluídos.')) return;
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/clients/${clientId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/clients/${client.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,7 +147,7 @@ function ClientHostsPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.name.trim() || (form.type !== 'notes' && !form.ip.trim())) return;
+    if (!client || !form.name.trim() || (form.type !== 'notes' && !form.ip.trim())) return;
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/hosts`, {
@@ -153,7 +158,7 @@ function ClientHostsPage() {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          client_id: clientId,
+          client_id: client.id,
           name: form.name.trim(),
           type: form.type,
           ip: form.ip.trim(),
@@ -165,7 +170,7 @@ function ClientHostsPage() {
       });
       
       if (response.ok) {
-        await fetchHosts();
+        await fetchHosts(client.id);
         setForm({ name: '', type: 'server', ip: '', username: '', password: '', noteTitle: '', notes: '', attachmentName: '', attachmentDataUrl: '' });
         setSheetOpen(false);
       } else {
