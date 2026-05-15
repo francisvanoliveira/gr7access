@@ -143,7 +143,7 @@ function UsersPage() {
           {users.map((u, i) => (
             <div
               key={u.id}
-              className="bg-card border border-border rounded-xl p-4 slide-up relative"
+              className={`bg-card border border-border rounded-xl p-4 slide-up relative ${menuOpen === u.id ? 'z-50' : 'z-0'}`}
               style={{ animationDelay: `${i * 80}ms` }}
             >
               <div className="flex items-center gap-4">
@@ -161,7 +161,11 @@ function UsersPage() {
                       {u.active ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                    <p className="truncate">{u.email}</p>
+                    <span>•</span>
+                    <p className="shrink-0">Último acesso: {u.last_login_at ? new Date(u.last_login_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Nunca'}</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setMenuOpen(menuOpen === u.id ? null : u.id)}
@@ -248,11 +252,11 @@ function UsersPage() {
                 </div>
               </div>
             </div>
-            <div className="pt-2 flex gap-3">
-              <Button variant="outline" onClick={() => setShowNew(false)} className="hidden md:flex flex-1 h-12">
+            <div className="pt-6 pb-4 flex gap-4">
+              <Button variant="outline" onClick={() => setShowNew(false)} className="hidden md:flex flex-1 h-12 text-base font-semibold">
                 Cancelar
               </Button>
-              <Button onClick={handleAddUser} className="w-full md:flex-1 h-12 text-base font-semibold">
+              <Button onClick={handleAddUser} className="flex-1 h-12 text-base font-semibold">
                 Cadastrar
               </Button>
             </div>
@@ -291,11 +295,11 @@ function UsersPage() {
                 </div>
               </div>
             </div>
-            <div className="pt-2 flex gap-3">
-              <Button variant="outline" onClick={() => setEditUser(null)} className="hidden md:flex flex-1 h-12">
+            <div className="pt-6 pb-4 flex gap-4">
+              <Button variant="outline" onClick={() => setEditUser(null)} className="hidden md:flex flex-1 h-12 text-base font-semibold">
                 Cancelar
               </Button>
-              <Button onClick={handleUpdateUser} className="w-full md:flex-1 h-12 text-base font-semibold">
+              <Button onClick={handleUpdateUser} className="flex-1 h-12 text-base font-semibold">
                 Salvar
               </Button>
             </div>

@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   LogOut,
+  Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -57,6 +58,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { to: '/' as const, label: 'Clientes', icon: Building2, badge: 0 },
     { to: '/requests' as const, label: 'Solicitações', icon: Shield, badge: user.level >= 2 ? realPendingCount : 0 },
     ...(canManageUsers ? [{ to: '/users' as const, label: 'Usuários', icon: Users, badge: 0 }] : []),
+    ...(user.level === 3 ? [{ to: '/logs' as const, label: 'Auditoria', icon: Activity, badge: 0 }] : []),
     { to: '/profile' as const, label: 'Perfil', icon: UserCircle, badge: 0 },
   ];
 
@@ -68,7 +70,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen flex">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-surface border-r border-border fixed inset-y-0 left-0 z-40">
+      <aside className="hidden lg:flex flex-col w-64 bg-surface border border-border fixed top-4 bottom-4 left-4 z-40 rounded-xl overflow-hidden shadow-sm">
         <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
             <Shield className="w-5 h-5 text-primary-foreground" />
@@ -165,7 +167,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-64 pb-20 md:pb-0">
+      <div className="flex-1 lg:ml-72 pb-20 md:pb-0">
         {/* Tablet header with menu */}
         <header className="hidden md:flex lg:hidden items-center gap-3 px-4 h-14 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-30">
           <button onClick={() => setDrawerOpen(true)} className="p-2 text-muted-foreground hover:text-foreground">

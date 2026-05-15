@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AttachmentViewerModal } from '@/components/AttachmentViewerModal';
 
 export const Route = createFileRoute('/hosts/$hostId')({
   head: () => ({
@@ -38,9 +39,12 @@ function HostDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editHostModal, setEditHostModal] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editHostForm, setEditHostForm] = useState<{ name: string; type: HostType; ip: string; username: string; password?: string }>({
     name: '', type: 'server', ip: '', username: '', password: ''
   });
+
+  const [viewAttachment, setViewAttachment] = useState<{name: string; dataUrl: string} | null>(null);
 
   const [editNoteModal, setEditNoteModal] = useState(false);
   const [editNoteForm, setEditNoteForm] = useState<{ id: string; title: string; text: string; attachmentName?: string; attachmentDataUrl?: string } | null>(null);
@@ -257,6 +261,14 @@ function HostDetailPage() {
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Validação de tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('O arquivo não pode exceder 5MB de tamanho.');
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setAttachment({ name: file.name, dataUrl: reader.result as string });
@@ -342,7 +354,11 @@ function HostDetailPage() {
             {canEdit && (
               <>
                 <button
-                  onClick={() => { setEditHostForm({ name: host.name, type: host.type, ip: host.ip || '', username: host.username || '', password: '' }); setEditHostModal(true); }}
+                  onClick={() => { 
+                    setEditHostForm({ name: host.name, type: host.type, ip: host.ip || '', username: host.username || '', password: host.password || '' }); 
+                    setShowEditPassword(false);
+                    setEditHostModal(true); 
+                  }}
                   className="p-2 text-muted-foreground hover:text-primary transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
                 >
                   <Edit2 className="w-5 h-5" />
@@ -456,6 +472,7 @@ function HostDetailPage() {
               <input
                 ref={fileInputRef}
                 type="file"
+                accept=".pdf,.txt,.doc,.docx,.xls,.xlsx"
                 onChange={handleAttachmentChange}
                 className="hidden"
               />
@@ -517,14 +534,13 @@ function HostDetailPage() {
                     {note.text}
                   </p>
                   {note.attachmentDataUrl && note.attachmentName && (
-                    <a
-                      href={note.attachmentDataUrl}
-                      download={note.attachmentName}
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:underline bg-primary/10 px-2 py-1 rounded-md"
+                    <button
+                      onClick={() => setViewAttachment({ name: note.attachmentName!, dataUrl: note.attachmentDataUrl! })}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:underline bg-primary/10 px-2 py-1 rounded-md text-left"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Paperclip className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate max-w-[200px]">{note.attachmentName}</span>
-                    </a>
+                    </button>
                   )}
                   <p className="text-[11px] text-muted-foreground/70 mt-1.5">
                     {note.authorName ? `${note.authorName} • ` : ''}
@@ -632,8 +648,24 @@ function HostDetailPage() {
                       <Input value={editHostForm.username} onChange={e => setEditHostForm({ ...editHostForm, username: e.target.value })} placeholder="admin" className="mt-1 h-11 bg-input/50 font-mono" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nova Senha (opcional)</label>
-                      <Input value={editHostForm.password} onChange={e => setEditHostForm({ ...editHostForm, password: e.target.value })} placeholder="••••••" className="mt-1 h-11 bg-input/50 font-mono" />
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
+                      <div className="relative mt-1">
+                        <Input 
+                          value={editHostForm.password} 
+                          onChange={e => setEditHostForm({ ...editHostForm, password: e.target.value })} 
+                          placeholder="••••••" 
+                          type={showEditPassword ? "text" : "password"}
+                          className="h-11 bg-input/50 font-mono pr-10" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowEditPassword(!showEditPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          aria-label={showEditPassword ? "Ocultar senha" : "Mostrar senha"}
+                        >
+                          {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -696,6 +728,13 @@ function HostDetailPage() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      <AttachmentViewerModal
+        open={viewAttachment !== null}
+        onOpenChange={(open) => !open && setViewAttachment(null)}
+        attachmentName={viewAttachment?.name || ''}
+        attachmentDataUrl={viewAttachment?.dataUrl || ''}
+      />
     </AppLayout>
   );
 }

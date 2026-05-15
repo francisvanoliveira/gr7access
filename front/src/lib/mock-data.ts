@@ -7,6 +7,8 @@ export interface User {
   password: string;
   level: UserLevel;
   active: boolean;
+  must_change_password?: boolean;
+  last_login_at?: string;
 }
 
 export interface Client {

@@ -6,13 +6,14 @@ export function useAuth() {
   const user = useSyncExternalStore(
     authStore.subscribe,
     () => authStore.getUser(),
-    () => ({ id: 'ssr', name: '', email: '', level: 0, active: true, password: '' } as any)
+    () => authStore.getUser()
   );
 
   return {
     user,
     login: authStore.login,
     logout: authStore.logout,
+    updatePasswordStatus: authStore.updateUserPasswordStatus,
     isN1: user?.level === 1,
     isN2: user?.level === 2,
     isN3: user?.level === 3,
@@ -25,13 +26,13 @@ export function useAccessRequests() {
   const requests = useSyncExternalStore(
     authStore.subscribe,
     () => authStore.getRequests(),
-    () => [] as AccessRequest[]
+    () => authStore.getRequests()
   );
 
   const pending = useSyncExternalStore(
     authStore.subscribe,
     () => authStore.getPendingRequests(),
-    () => [] as AccessRequest[]
+    () => authStore.getPendingRequests()
   );
 
   return {
@@ -49,7 +50,7 @@ export function useClients() {
   const clients = useSyncExternalStore(
     authStore.subscribe,
     () => authStore.getClients(),
-    () => [] as Client[]
+    () => authStore.getClients()
   );
   return { clients, addClient: authStore.addClient };
 }
@@ -58,7 +59,7 @@ export function useHosts() {
   const hosts = useSyncExternalStore(
     authStore.subscribe,
     () => authStore.getHosts(),
-    () => [] as Host[]
+    () => authStore.getHosts()
   );
   return {
     hosts,

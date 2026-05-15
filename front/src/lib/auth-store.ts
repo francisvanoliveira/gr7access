@@ -74,7 +74,8 @@ export const authStore = {
           email: data.user.email,
           level: data.user.level,
           active: data.user.active !== undefined ? data.user.active : true,
-          password: ''
+          password: '',
+          must_change_password: data.user.must_change_password,
         };
         currentUser = user;
         localStorage.setItem('auth_token', data.access_token);
@@ -86,6 +87,14 @@ export const authStore = {
     } catch (error) {
       console.error('Login error:', error);
       return null;
+    }
+  },
+
+  updateUserPasswordStatus(mustChange: boolean) {
+    if (currentUser) {
+      currentUser = { ...currentUser, must_change_password: mustChange };
+      localStorage.setItem('auth_user', JSON.stringify(currentUser));
+      notify();
     }
   },
 

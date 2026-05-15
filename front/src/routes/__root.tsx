@@ -1,4 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { ForceChangePasswordModal } from "@/components/ForceChangePasswordModal";
+import { useEffect, useRef } from "react";
 
 import appCss from "../styles.css?url";
 
@@ -59,5 +61,44 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  const fetchPatched = useRef(false);
+
+  useEffect(() => {
+    if (fetchPatched.current || typeof window === 'undefined') return;
+    fetchPatched.current = true;
+
+    let clientIp = '';
+    
+    // Busca o IP publico real do usuario
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ip) clientIp = data.ip;
+      })
+      .catch(() => {});
+
+    const originalFetch = window.fetch;
+    window.fetch = async function (...args) {
+      let [resource, config] = args;
+      
+      if (typeof resource === 'string' && resource.startsWith(import.meta.env.VITE_API_URL)) {
+        config = config || {};
+        const headers = new Headers(config.headers || {});
+        if (clientIp) {
+          headers.set('X-Client-Public-IP', clientIp);
+        }
+        config.headers = headers;
+        args[1] = config;
+      }
+      
+      return originalFetch.apply(this, args as any);
+    };
+  }, []);
+
+  return (
+    <>
+      <Outlet />
+      <ForceChangePasswordModal />
+    </>
+  );
 }
