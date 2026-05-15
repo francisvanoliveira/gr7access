@@ -240,7 +240,7 @@ function ClientHostsPage() {
             <Link
               key={host.id}
               to="/hosts/$hostId"
-              params={{ hostId: host.id }}
+              params={{ hostId: host.slug || String(host.id) }}
               className="block"
             >
               <div

@@ -35,6 +35,7 @@ export interface Host {
   id: string;
   clientId: string;
   name: string;
+  slug?: string;
   type: HostType;
   ip: string;
   username: string;
